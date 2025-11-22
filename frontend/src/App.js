@@ -2,7 +2,7 @@ import './App.css';
 import Dashboard from "./components/Dashboard";
 import History from "./components/History";
 import Schedule from "./components/Schedule";
-import CalendarRiego from "./components/CalendarRiego";
+import Programs from "./components/Programs";
 
 
 function App() {
@@ -21,6 +21,9 @@ function App() {
         </section>
         <section className="card">
           <Schedule />
+        </section>
+        <section className="card">
+          <Programs />
         </section>
       </main>
       <footer>

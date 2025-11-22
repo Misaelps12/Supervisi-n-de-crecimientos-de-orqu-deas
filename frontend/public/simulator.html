@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simulador de Tinkercad (navegador)</title>
+  <style>
+    body { font-family: Arial,Helvetica,sans-serif; margin:20px; }
+    label { display:block; margin-top:8px }
+    #logs { white-space:pre-wrap; background:#111; color:#0f0; padding:10px; height:300px; overflow:auto }
+    button { margin-right:8px }
+    .row { display:flex; gap:8px; align-items:center }
+  </style>
+</head>
+<body>
+  <h1>Simulador de sensores (navegador)</h1>
+  <p>Esta página emula un dispositivo que envía telemetría (humedad/temperatura) al backend y escucha por WebSocket.</p>
+
+  <label>Backend base URL: <input id="baseUrl" value="http://localhost:5000" style="width:260px" /></label>
+  <div class="row">
+    <label>Intervalo envío (s): <input id="intervalSec" type="number" value="5" style="width:80px" /></label>
+    <label>Temperatura (media): <input id="tempMean" type="number" value="22" style="width:80px" /></label>
+    <label>Humedad (media): <input id="humMean" type="number" value="60" style="width:80px" /></label>
+  </div>
+
+  <div style="margin-top:10px">
+    <button id="startBtn">Iniciar</button>
+    <button id="stopBtn" disabled>Parar</button>
+    <button id="sendOne">Enviar una lectura</button>
+    <button id="sendTrigger">Enviar trigger</button>
+  </div>
+
+  <h3>Entrada manual</h3>
+  <p>Pega aquí una lectura (JSON como <code>{"temperature":25,"humidity":40}</code> o texto <code>25,40</code>) y pulsa <strong>Evaluar</strong>.</p>
+  <textarea id="manualInput" rows="3" style="width:100%" placeholder='{"temperature":25,"humidity":40}'></textarea>
+  <div class="row" style="margin-top:8px">
+    <label>Umbral humedad (si &lt; entonces riego): <input id="humThreshold" type="number" value="50" style="width:80px" /></label>
+    <button id="evalBtn">Evaluar</button>
+    <button id="sendManual">Enviar como telemetría</button>
+  </div>
+  <div style="margin-top:8px"><strong>Resultado:</strong> <span id="evalResult">-</span></div>
+
+  <h3>Conexión WebSocket</h3>
+  <div class="row">
+    <label>WS URL: <input id="wsUrl" value="ws://localhost:5000" style="width:260px" /></label>
+    <button id="wsConnect">Conectar WS</button>
+    <button id="wsDisconnect" disabled>Desconectar WS</button>
+  </div>
+
+  <h3>Logs</h3>
+  <div id="logs">Logs del simulador...</div>
+
+  <script>
+    const logEl = document.getElementById('logs');
+    function log(...args){
+      const s = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+      logEl.textContent = new Date().toISOString() + '  ' + s + '\n' + logEl.textContent;
+    }
+
+    let timer = null;
+    function randomAround(mean, spread=5){
+      return +(mean + (Math.random()*2-1)*spread).toFixed(1);
+    }
+
+    async function sendTelemetry(baseUrl, temp, hum){
+      try{
+        const res = await fetch(baseUrl + '/api/telemetry', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ temperature: temp, humidity: hum, time: Date.now() }),
+        });
+        const body = await res.json().catch(()=>null);
+        log('Telemetry sent ->', {temperature:temp,humidity:hum}, 'resp:', res.status, body);
+      }catch(err){
+        log('Error sending telemetry:', err.message||err);
+      }
+    }
+
+    document.getElementById('startBtn').addEventListener('click', ()=>{
+      const interval = Math.max(1, parseInt(document.getElementById('intervalSec').value || '5',10))*1000;
+      const baseUrl = document.getElementById('baseUrl').value || 'http://localhost:5000';
+      if (timer) clearInterval(timer);
+      timer = setInterval(()=>{
+        const temp = randomAround(parseFloat(document.getElementById('tempMean').value||22), 3);
+        const hum = randomAround(parseFloat(document.getElementById('humMean').value||60), 8);
+        sendTelemetry(baseUrl, temp, hum);
+      }, interval);
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = false;
+      log('Auto-sender started, interval', interval/1000, 's');
+    });
+
+    document.getElementById('stopBtn').addEventListener('click', ()=>{
+      if (timer) clearInterval(timer);
+      timer = null;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+      log('Auto-sender stopped');
+    });
+
+    document.getElementById('sendOne').addEventListener('click', ()=>{
+      const baseUrl = document.getElementById('baseUrl').value || 'http://localhost:5000';
+      const temp = randomAround(parseFloat(document.getElementById('tempMean').value||22), 3);
+      const hum = randomAround(parseFloat(document.getElementById('humMean').value||60), 8);
+      sendTelemetry(baseUrl, temp, hum);
+    });
+
+    document.getElementById('sendTrigger').addEventListener('click', async ()=>{
+      const baseUrl = document.getElementById('baseUrl').value || 'http://localhost:5000';
+      try{
+        const res = await fetch(baseUrl + '/api/trigger', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ source: 'sim-browser' }) });
+        const body = await res.json().catch(()=>null);
+        log('Trigger sent, resp:', res.status, body);
+      }catch(err){ log('Trigger error:', err.message||err); }
+    });
+
+    // Evaluar entrada manual
+    function parseManual(){
+      const raw = document.getElementById('manualInput').value.trim();
+      if (!raw) return null;
+      try {
+        const obj = JSON.parse(raw);
+        return { temperature: Number(obj.temperature), humidity: Number(obj.humidity) };
+      } catch(e) {
+        // intentar formato "temp,hum"
+        const parts = raw.split(/[,\s]+/).filter(Boolean);
+        if (parts.length >= 2){
+          return { temperature: Number(parts[0]), humidity: Number(parts[1]) };
+        }
+      }
+      return null;
+    }
+
+    document.getElementById('evalBtn').addEventListener('click', ()=>{
+      const parsed = parseManual();
+      const outEl = document.getElementById('evalResult');
+      if (!parsed || isNaN(parsed.humidity) || isNaN(parsed.temperature)){
+        outEl.textContent = 'Entrada no válida';
+        log('Manual parse failed:', document.getElementById('manualInput').value);
+        return;
+      }
+      const humThresh = Number(document.getElementById('humThreshold').value || '50');
+      const needsWater = parsed.humidity < humThresh;
+      outEl.textContent = needsWater ? 'RI EGO: ON' : 'RI EGO: OFF';
+      log('Evaluated manual input', parsed, 'threshold', humThresh, '=>', needsWater ? 'ON' : 'OFF');
+    });
+
+    document.getElementById('sendManual').addEventListener('click', ()=>{
+      const parsed = parseManual();
+      if (!parsed) { log('No se pudo parsear entrada manual'); return; }
+      const baseUrl = document.getElementById('baseUrl').value || 'http://localhost:5000';
+      sendTelemetry(baseUrl, parsed.temperature, parsed.humidity);
+    });
+
+    // WebSocket
+    let ws = null;
+    document.getElementById('wsConnect').addEventListener('click', ()=>{
+      const wsUrl = document.getElementById('wsUrl').value || 'ws://localhost:5000';
+      if (ws) ws.close();
+      ws = new WebSocket(wsUrl);
+      ws.addEventListener('open', ()=>{ log('WS connected to', wsUrl); document.getElementById('wsConnect').disabled=true; document.getElementById('wsDisconnect').disabled=false; });
+      ws.addEventListener('close', ()=>{ log('WS disconnected'); document.getElementById('wsConnect').disabled=false; document.getElementById('wsDisconnect').disabled=true; });
+      ws.addEventListener('message', (ev)=>{ log('WS <-', ev.data); });
+      ws.addEventListener('error', (ev)=>{ log('WS error', ev && ev.message ? ev.message : ev); });
+    });
+    document.getElementById('wsDisconnect').addEventListener('click', ()=>{ if (ws) ws.close(); ws=null; });
+
+    // Auto-scroll to bottom
+    const obs = new MutationObserver(()=>{ logEl.scrollTop = 0; });
+    obs.observe(logEl, {childList:true, subtree:true, characterData:true});
+
+    log('Simulator ready. Opened at', location.href);
+  </script>
+</body>
+</html>
