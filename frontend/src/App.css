@@ -1,3 +1,4 @@
+/* ===== Base layout ===== */
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -50,4 +51,179 @@ footer {
   margin-top: 40px;
   font-size: 0.9em;
   color: #999;
+}
+
+/* ===== Schedule ===== */
+.schedule-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.schedule-form {
+  background: #f0f8ff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.schedule-form label {
+  font-weight: bold;
+  margin-right: 6px;
+}
+
+.schedule-form input {
+  margin-bottom: 10px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.schedule-form button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.schedule-form button:hover {
+  background-color: #45a049;
+}
+
+.schedule-list {
+  margin-top: 16px;
+}
+
+.schedule-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.schedule-list li {
+  background: #fff;
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-list li button {
+  background-color: #f44336;
+}
+
+.schedule-list li button:hover {
+  background-color: #d32f2f;
+}
+
+/* ===== Programs ===== */
+.programs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.programs-item {
+  background: #fff;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.programs-item button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.programs-item button:hover {
+  background-color: #d32f2f;
+}
+
+/* ===== Buttons & inputs (global refinements) ===== */
+button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+button:disabled {
+  background-color: #9e9e9e;
+  cursor: not-allowed;
+}
+
+input[type="text"],
+input[type="time"],
+input[type="number"] {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+}
+
+input[type="text"]:focus,
+input[type="time"]:focus,
+input[type="number"]:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.15);
+}
+
+/* ===== History ===== */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.history-table th,
+.history-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.history-table th {
+  background-color: #f4f6f8;
+  color: #333;
+  text-align: left;
+}
+
+.history-table tbody tr:nth-child(odd) {
+  background-color: #fafafa;
+}
+
+.warning {
+  color: #c62828;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #ffe5e5;
+}
+
+/* ===== Layout tweaks for wide screens ===== */
+@media (min-width: 980px) {
+  main {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
 }

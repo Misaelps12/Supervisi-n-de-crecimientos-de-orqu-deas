@@ -2,7 +2,7 @@
 // Cliente simple para suscribirse al WebSocket del backend y mostrar mensajes entrantes.
 const WebSocket = require('ws');
 
-const WS_URL = process.env.SERVER_WS || 'ws://localhost:5000';
+const WS_URL = process.env.SERVER_WS || 'ws://localhost:4000';
 console.log('Connecting to', WS_URL);
 const ws = new WebSocket(WS_URL);
 

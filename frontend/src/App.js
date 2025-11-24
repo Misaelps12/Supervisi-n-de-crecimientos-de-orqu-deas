@@ -1,34 +1,51 @@
-import './App.css';
+import { useState } from "react";
+import "./App.css"; // O tus estilos globales
 import Dashboard from "./components/Dashboard";
 import History from "./components/History";
-import Schedule from "./components/Schedule";
-import Programs from "./components/Programs";
-
+import Portada from "./components/Portada";
 
 function App() {
+  // Estado para controlar qué pantalla se ve
+  // Si showPortada es true, se ve la portada. Si es false, se ve la app.
+  const [showPortada, setShowPortada] = useState(true);
+  
+  // Estado para navegar entre Dashboard e Historial (tu navegación actual)
+  const [currentView, setCurrentView] = useState("dashboard");
+
+  // Si estamos en modo portada, mostramos solo eso
+  if (showPortada) {
+    return <Portada onEnter={() => setShowPortada(false)} />;
+  }
+
+  // Si no, mostramos la aplicación completa (Navbar + Contenido)
   return (
-    <div className="container">
-      <header>
-        <h1>🌸 Monitoreo de Orquídeas</h1>
-        <p>Control ambiental en tiempo real y calendario de riego</p>
-      </header>
-      <main>
-        <section className="card">
-          <Dashboard />
-        </section>
-        <section className="card">
-          <History />
-        </section>
-        <section className="card">
-          <Schedule />
-        </section>
-        <section className="card">
-          <Programs />
-        </section>
-      </main>
-      <footer>
-        <p>© 2025 Cultivo Inteligente | Proyecto Integración de Competencias II</p>
-      </footer>
+    <div className="App">
+      {/* NAVBAR SUPERIOR */}
+      <nav className="navbar">
+        <div className="logo">🌱 Frutos del Mundo</div>
+        <div className="menu">
+          <button 
+            className={currentView === "dashboard" ? "active" : ""} 
+            onClick={() => setCurrentView("dashboard")}
+          >
+            Dashboard
+          </button>
+          <button 
+            className={currentView === "history" ? "active" : ""} 
+            onClick={() => setCurrentView("history")}
+          >
+            Historial
+          </button>
+          {/* Agrega más botones si tienes más componentes */}
+        </div>
+      </nav>
+
+      {/* CONTENIDO PRINCIPAL */}
+      <div className="main-content">
+        {currentView === "dashboard" && <Dashboard />}
+        {currentView === "history" && <History />}
+        {/* {currentView === "programs" && <Programs />} */}
+      </div>
     </div>
   );
 }

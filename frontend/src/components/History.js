@@ -1,63 +1,90 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
+import "./dashboard-theme.css";
 
 export default function History() {
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-  const WS_BASE = (process.env.REACT_APP_WS_URL) || API_BASE.replace(/^http/, 'ws');
-  const [rows, setRows] = useState([]);
-  const wsRef = useRef(null);
+  const [historyData, setHistoryData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  const API = process.env.REACT_APP_API_URL || "http://localhost:4000";
+
+  // Cargar datos al entrar a la pantalla
   useEffect(() => {
-    // Obtener histórico inicial desde el backend
-    fetch(`${API_BASE}/api/telemetry?limit=100`)
-      .then(async (res) => {
-        const ct = res.headers.get('content-type') || '';
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(`HTTP ${res.status}: ${txt}`);
-        }
-        if (!ct.includes('application/json')) {
-          const txt = await res.text();
-          throw new Error('Expected JSON but got: ' + txt.slice(0, 200));
-        }
-        return res.json();
-      })
-      .then((data) => setRows(data || []))
-      .catch((err) => console.error('Error fetching telemetry:', err));
-
-    // Conectar por WebSocket para recibir actualizaciones en tiempo real
-    try {
-      const ws = new WebSocket(WS_BASE);
-      ws.onmessage = (ev) => {
-        try {
-          const payload = JSON.parse(ev.data);
-          // se espera que el payload tenga { humidity, temperature, ... }
-          const item = { time: Date.now(), humidity: payload.humidity, temperature: payload.temperature };
-          setRows((prev) => [item, ...prev].slice(0, 200));
-        } catch (err) {
-          // ignorar errores de parseo
-        }
-      };
-      wsRef.current = ws;
-    } catch (err) {
-      console.warn('WebSocket not available:', err.message);
-    }
-
-    return () => {
-      if (wsRef.current) wsRef.current.close();
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API}/api/telemetry?limit=50`);
+        const data = await res.json();
+        setHistoryData(data);
+      } catch (error) {
+        console.error("Error cargando historial:", error);
+      } finally {
+        setLoading(false);
+      }
     };
-  }, []);
+
+    fetchHistory();
+  }, [API]); // Agregamos API como dependencia para quitar el warning
 
   return (
-    <div>
-      <h2>📊 Histórico</h2>
-      <ul>
-        {rows.map((r, i) => (
-          <li key={i}>
-            {new Date(r.time).toLocaleString()} — HR {r.humidity}% — T {r.temperature}°C
-          </li>
-        ))}
-      </ul>
+    <div className="dashboard-wrapper">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h2>📜 Historial de Mediciones</h2>
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ padding: "8px 15px", cursor: "pointer" }}
+        >
+          🔄 Actualizar
+        </button>
+      </div>
+
+      <p style={{ color: "#666" }}>
+        Aquí aparecen tanto los datos de los sensores reales como los ingresados manualmente.
+      </p>
+
+      {loading ? (
+        <p>Cargando datos...</p>
+      ) : (
+        <div className="table-container">
+          <table className="history-table">
+            <thead>
+              <tr>
+                <th>Fecha y Hora</th>
+                <th>💧 Humedad</th>
+                <th>🌡 Temperatura</th>
+              </tr>
+            </thead>
+            <tbody>
+              {historyData.length > 0 ? (
+                historyData.map((item, index) => {
+                  // Verificamos si la fecha es válida
+                  const dateObj = new Date(item.time);
+                  const isValidDate = !isNaN(dateObj.getTime());
+
+                  return (
+                    <tr key={index}>
+                      <td>
+                        {isValidDate 
+                          ? dateObj.toLocaleString("es-CL", {
+                              day: "2-digit", month: "2-digit", 
+                              hour: "2-digit", minute: "2-digit", second: "2-digit"
+                            })
+                          : `Hora: ${item.time}` /* Para datos viejos */
+                        }
+                      </td>
+                      <td>{Number(item.humidity).toFixed(1)}%</td>
+                      <td>{Number(item.temperature).toFixed(1)}°C</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="3" style={{ textAlign: "center" }}>No hay datos registrados aún.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
-
